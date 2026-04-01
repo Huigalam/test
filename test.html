@@ -1,38 +1,60 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>카톡 공유 테스트</title>
-
-    <style>
-        .btn {
-            height: 60px;
-            font-size: 16px;
-            border-radius: 6px;
-            width: 100%;
-            padding: 12px 24px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            background-color: rgb(251, 219, 0);
-            color: rgb(1, 0, 2);
-            border: 1px solid rgb(239, 209, 0);
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>카카오 공유 테스트</title>
 </head>
-
 <body>
-    <p> 프로모션 링크를 카카오톡 친구들에게 공유해보세요!</p>
-    <a class="btn btn--kakao" id="kakaotalk-sharing-btn" title="Share on Kakao" onclick="scrapKakao(this);">
-        <span> 카카오톡 공유 </span>
-    </a>
-    <script src="https://developers.kakao.com/sdk/js/kakao.min.js"></script>
-    <script type="text/javascript">
-        Kakao.init('javascript key'); //내 애플리케이션 앱 키
-    </script>
-    <script src="./kakao.js"></script>
+  <h2>카카오 공유 테스트</h2>
+  <button id="kakao-share-btn" type="button">카카오톡으로 보내기</button>
 
+  <!-- Kakao JavaScript SDK -->
+  <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"
+    integrity="sha384-kDdg9NJ6h4pS4v8rX2M4wXr4tJxVgQvV+4H8wM3n8Wm9B6Q1h5xR6gM9R0vQ2m5p"
+    crossorigin="anonymous"></script>
+
+  <script>
+    // 1) 본인 앱의 JavaScript 키로 교체
+    Kakao.init('0f9043de8007aa35650c352ff09d40c1');
+
+    console.log('Kakao initialized:', Kakao.isInitialized());
+
+    // 2) 버튼 클릭 시 카카오톡 공유
+    document.getElementById('kakao-share-btn').addEventListener('click', function () {
+      Kakao.Share.sendDefault({
+        objectType: 'feed',
+        content: {
+          title: '개인 테스트 메시지',
+          description: '이미지와 링크가 포함된 카카오 공유 테스트입니다.',
+          imageUrl: 'https://via.placeholder.com/800x400.png?text=Kakao+Test+Image',
+          link: {
+            mobileWebUrl: 'https://example.com',
+            webUrl: 'https://example.com'
+          }
+        },
+        buttons: [
+          {
+            title: '선물받기',
+            link: {
+              mobileWebUrl: 'https://example.com',
+              webUrl: 'https://example.com'
+            }
+          }
+        ]
+      });
+    });
+  </script>
 </body>
-
 </html>
+
+추가로 꼭 확인할 점입니다.
+
+Kakao.init()에는 카카오 디벨로퍼스 앱의 JavaScript 키를 넣어야 하고, 메시지에 들어가는 webUrl, mobileWebUrl, 이미지 URL은 접근 가능한 URL이어야 합니다. 또 JavaScript SDK 사용 전에는 앱 설정에서 JavaScript 키와 JavaScript SDK 도메인 설정이 필요합니다.
+
+테스트용으로 값을 바꿔야 하는 부분은 이 4개입니다.
+
+YOUR_JAVASCRIPT_KEY
+imageUrl
+mobileWebUrl
+webUrl
