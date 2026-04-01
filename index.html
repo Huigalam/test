@@ -5,84 +5,105 @@
   <title>Kakao REST Test</title>
 </head>
 <body>
+  <button onclick="login()">처음 1회 로그인</button>
+  <button onclick="send()">메시지 보내기</button>
 
-<button onclick="login()">카카오 로그인</button>
-<button onclick="send()">메시지 보내기</button>
+  <script>
+    const REST_API_KEY = "YOUR_REST_API_KEY";
+    const REDIRECT_URI = location.origin + location.pathname;
 
-<script>
-const REST_API_KEY = "fe1dd7003cd4ab68607b81bb5079fdfa";
-const REDIRECT_URI = location.origin + location.pathname;
+    function login() {
+      location.href =
+        "https://kauth.kakao.com/oauth/authorize?client_id=" +
+        REST_API_KEY +
+        "&redirect_uri=" +
+        encodeURIComponent(REDIRECT_URI) +
+        "&response_type=code&scope=talk_message";
+    }
 
-// 로그인
-function login() {
-  location.href =
-    "https://kauth.kakao.com/oauth/authorize?client_id=" +
-    REST_API_KEY +
-    "&redirect_uri=" +
-    REDIRECT_URI +
-    "&response_type=code&scope=talk_message";
-}
+    async function getTokenByCode(code) {
+      const res = await fetch("https://kauth.kakao.com/oauth/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=utf-8" },
+        body:
+          "grant_type=authorization_code" +
+          "&client_id=" + REST_API_KEY +
+          "&redirect_uri=" + encodeURIComponent(REDIRECT_URI) +
+          "&code=" + code
+      });
+      const data = await res.json();
+      localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("refresh_token", data.refresh_token);
+    }
 
-// 토큰 요청
-async function getToken(code) {
-  const res = await fetch("https://kauth.kakao.com/oauth/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded"
-    },
-    body:
-      "grant_type=authorization_code" +
-      "&client_id=" + REST_API_KEY +
-      "&redirect_uri=" + REDIRECT_URI +
-      "&code=" + code
-  });
-
-  const data = await res.json();
-  localStorage.setItem("token", data.access_token);
-}
-
-// 메시지 전송
-async function send() {
-  const token = localStorage.getItem("token");
-
-  const template = {
-    object_type: "feed",
-    content: {
-      title: "테스트 메시지",
-      description: "이미지 + 링크 + 버튼",
-      image_url: "https://via.placeholder.com/800x400.png",
-      link: {
-        web_url: "https://example.com",
-        mobile_web_url: "https://example.com"
+    async function refreshAccessToken() {
+      const refreshToken = localStorage.getItem("refresh_token");
+      const res = await fetch("https://kauth.kakao.com/oauth/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=utf-8" },
+        body:
+          "grant_type=refresh_token" +
+          "&client_id=" + REST_API_KEY +
+          "&refresh_token=" + refreshToken
+      });
+      const data = await res.json();
+      localStorage.setItem("access_token", data.access_token);
+      if (data.refresh_token) {
+        localStorage.setItem("refresh_token", data.refresh_token);
       }
-    },
-    buttons: [
-      {
-        title: "사이트 이동",
-        link: {
-          web_url: "https://example.com",
-          mobile_web_url: "https://example.com"
-        }
+      return data.access_token;
+    }
+
+    async function sendMessage(token) {
+      const template = {
+        object_type: "feed",
+        content: {
+          title: "테스트 메시지",
+          description: "이미지 + 링크 + 버튼",
+          image_url: "https://via.placeholder.com/800x400.png",
+          link: {
+            web_url: "https://example.com",
+            mobile_web_url: "https://example.com"
+          }
+        },
+        buttons: [
+          {
+            title: "사이트 이동",
+            link: {
+              web_url: "https://example.com",
+              mobile_web_url: "https://example.com"
+            }
+          }
+        ]
+      };
+
+      await fetch("https://kapi.kakao.com/v2/api/talk/memo/default/send", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/x-www-form-urlencoded;charset=utf-8"
+        },
+        body: "template_object=" + encodeURIComponent(JSON.stringify(template))
+      });
+
+      alert("전송 완료");
+    }
+
+    async function send() {
+      let token = localStorage.getItem("access_token");
+      if (!token && localStorage.getItem("refresh_token")) {
+        token = await refreshAccessToken();
       }
-    ]
-  };
+      await sendMessage(token);
+    }
 
-  await fetch("https://kapi.kakao.com/v2/api/talk/memo/default/send", {
-    method: "POST",
-    headers: {
-      Authorization: "Bearer " + token,
-      "Content-Type": "application/x-www-form-urlencoded"
-    },
-    body: "template_object=" + encodeURIComponent(JSON.stringify(template))
-  });
-
-  alert("전송 완료");
-}
-
-// 코드 있으면 자동 토큰 발급
-const code = new URLSearchParams(location.search).get("code");
-if (code) getToken(code);
-</script>
-
+    const code = new URLSearchParams(location.search).get("code");
+    if (code) {
+      getTokenByCode(code).then(() => {
+        history.replaceState({}, "", REDIRECT_URI);
+        alert("로그인 완료");
+      });
+    }
+  </script>
 </body>
 </html>
