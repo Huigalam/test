@@ -5,105 +5,121 @@
   <title>Kakao REST Test</title>
 </head>
 <body>
-  <button onclick="login()">처음 1회 로그인</button>
-  <button onclick="send()">메시지 보내기</button>
 
-  <script>
-    const REST_API_KEY = "fe1dd7003cd4ab68607b81bb5079fdfa";
-    const REDIRECT_URI = location.origin + location.pathname;
+<h3>카카오 메시지 테스트</h3>
 
-    function login() {
-      location.href =
-        "https://kauth.kakao.com/oauth/authorize?client_id=" +
-        REST_API_KEY +
-        "&redirect_uri=" +
-        encodeURIComponent(REDIRECT_URI) +
-        "&response_type=code&scope=talk_message";
-    }
+API KEY<br>
+<input id="key" style="width:400px"><br><br>
 
-    async function getTokenByCode(code) {
-      const res = await fetch("https://kauth.kakao.com/oauth/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=utf-8" },
-        body:
-          "grant_type=authorization_code" +
-          "&client_id=" + REST_API_KEY +
-          "&redirect_uri=" + encodeURIComponent(REDIRECT_URI) +
-          "&code=" + code
-      });
-      const data = await res.json();
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("refresh_token", data.refresh_token);
-    }
+TITLE<br>
+<input id="title" value="테스트 메시지"><br><br>
 
-    async function refreshAccessToken() {
-      const refreshToken = localStorage.getItem("refresh_token");
-      const res = await fetch("https://kauth.kakao.com/oauth/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=utf-8" },
-        body:
-          "grant_type=refresh_token" +
-          "&client_id=" + REST_API_KEY +
-          "&refresh_token=" + refreshToken
-      });
-      const data = await res.json();
-      localStorage.setItem("access_token", data.access_token);
-      if (data.refresh_token) {
-        localStorage.setItem("refresh_token", data.refresh_token);
+DESCRIPTION<br>
+<input id="desc" value="설명입니다"><br><br>
+
+IMAGE URL<br>
+<input id="img" value="https://via.placeholder.com/800x400.png"><br><br>
+
+<button onclick="login()">1회 로그인</button>
+<button onclick="send()">메시지 보내기</button>
+
+<script>
+function val(id){ return document.getElementById(id).value }
+
+function login(){
+  const key = val("key")
+  const uri = location.origin + location.pathname
+
+  location.href =
+    "https://kauth.kakao.com/oauth/authorize?client_id=" +
+    key +
+    "&redirect_uri=" + encodeURIComponent(uri) +
+    "&response_type=code&scope=talk_message"
+}
+
+async function getToken(code){
+  const key = val("key")
+  const uri = location.origin + location.pathname
+
+  const res = await fetch("https://kauth.kakao.com/oauth/token", {
+    method:"POST",
+    headers:{ "Content-Type":"application/x-www-form-urlencoded" },
+    body:
+      "grant_type=authorization_code"+
+      "&client_id="+key+
+      "&redirect_uri="+encodeURIComponent(uri)+
+      "&code="+code
+  })
+
+  const d = await res.json()
+  localStorage.setItem("at", d.access_token)
+  localStorage.setItem("rt", d.refresh_token)
+}
+
+async function refresh(){
+  const key = val("key")
+  const rt = localStorage.getItem("rt")
+
+  const res = await fetch("https://kauth.kakao.com/oauth/token", {
+    method:"POST",
+    headers:{ "Content-Type":"application/x-www-form-urlencoded" },
+    body:
+      "grant_type=refresh_token"+
+      "&client_id="+key+
+      "&refresh_token="+rt
+  })
+
+  const d = await res.json()
+  localStorage.setItem("at", d.access_token)
+  if(d.refresh_token) localStorage.setItem("rt", d.refresh_token)
+  return d.access_token
+}
+
+async function send(){
+  let token = localStorage.getItem("at")
+  if(!token) token = await refresh()
+
+  const template = {
+    object_type:"feed",
+    content:{
+      title: val("title"),
+      description: val("desc"),
+      image_url: val("img"),
+      link:{
+        web_url:"https://example.com",
+        mobile_web_url:"https://example.com"
       }
-      return data.access_token;
-    }
-
-    async function sendMessage(token) {
-      const template = {
-        object_type: "feed",
-        content: {
-          title: "손영기님이 선물 드립니다.",
-          description: "",
-          image_url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ1ITZFSBm-ASA0o2U-vSSnl_D6AYUlEYmgpg&s",
-          link: {
-            web_url: "https://sites.google.com/view/snuaprilfoolsday/%ED%99%88",
-            mobile_web_url: "https://sites.google.com/view/snuaprilfoolsday/%ED%99%88"
-          }
-        },
-        buttons: [
-          {
-            title: "선물 받기",
-            link: {
-              web_url: "https://sites.google.com/view/snuaprilfoolsday/%ED%99%88",
-              mobile_web_url: "https://sites.google.com/view/snuaprilfoolsday/%ED%99%88"
-            }
-          }
-        ]
-      };
-
-      await fetch("https://kapi.kakao.com/v2/api/talk/memo/default/send", {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer " + token,
-          "Content-Type": "application/x-www-form-urlencoded;charset=utf-8"
-        },
-        body: "template_object=" + encodeURIComponent(JSON.stringify(template))
-      });
-
-      alert("전송 완료");
-    }
-
-    async function send() {
-      let token = localStorage.getItem("access_token");
-      if (!token && localStorage.getItem("refresh_token")) {
-        token = await refreshAccessToken();
+    },
+    buttons:[{
+      title:"열기",
+      link:{
+        web_url:"https://example.com",
+        mobile_web_url:"https://example.com"
       }
-      await sendMessage(token);
-    }
+    }]
+  }
 
-    const code = new URLSearchParams(location.search).get("code");
-    if (code) {
-      getTokenByCode(code).then(() => {
-        history.replaceState({}, "", REDIRECT_URI);
-        alert("로그인 완료");
-      });
-    }
-  </script>
+  await fetch("https://kapi.kakao.com/v2/api/talk/memo/default/send",{
+    method:"POST",
+    headers:{
+      Authorization:"Bearer "+token,
+      "Content-Type":"application/x-www-form-urlencoded"
+    },
+    body:"template_object="+encodeURIComponent(JSON.stringify(template))
+  })
+
+  alert("전송 완료")
+}
+
+// 로그인 후 code 처리
+const code = new URLSearchParams(location.search).get("code")
+if(code){
+  getToken(code).then(()=>{
+    history.replaceState({}, "", location.pathname)
+    alert("로그인 완료")
+  })
+}
+</script>
+
 </body>
 </html>
