@@ -20,6 +20,12 @@ DESCRIPTION<br>
 IMAGE URL<br>
 <input id="img" value="https://via.placeholder.com/800x400.png"><br><br>
 
+컨텐츠 링크 URL<br>
+<input id="contentLink" value="https://example.com"><br><br>
+
+버튼 링크 URL<br>
+<input id="buttonLink" value="https://example.com"><br><br>
+
 <button onclick="login()">1회 로그인</button>
 <button onclick="send()">메시지 보내기</button>
 
@@ -79,6 +85,9 @@ async function send(){
   let token = localStorage.getItem("at")
   if(!token) token = await refresh()
 
+  const contentLink = val("contentLink")
+  const buttonLink = val("buttonLink")
+
   const template = {
     object_type:"feed",
     content:{
@@ -86,15 +95,15 @@ async function send(){
       description: val("desc"),
       image_url: val("img"),
       link:{
-        web_url:"https://example.com",
-        mobile_web_url:"https://example.com"
+        web_url: contentLink,
+        mobile_web_url: contentLink
       }
     },
     buttons:[{
       title:"열기",
       link:{
-        web_url:"https://example.com",
-        mobile_web_url:"https://example.com"
+        web_url: buttonLink,
+        mobile_web_url: buttonLink
       }
     }]
   }
