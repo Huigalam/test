@@ -1,60 +1,88 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>카카오 공유 테스트</title>
+  <meta charset="UTF-8">
+  <title>Kakao REST Test</title>
 </head>
 <body>
-  <h2>카카오 공유 테스트</h2>
-  <button id="kakao-share-btn" type="button">카카오톡으로 보내기</button>
 
-  <!-- Kakao JavaScript SDK -->
-  <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"
-    integrity="sha384-kDdg9NJ6h4pS4v8rX2M4wXr4tJxVgQvV+4H8wM3n8Wm9B6Q1h5xR6gM9R0vQ2m5p"
-    crossorigin="anonymous"></script>
+<button onclick="login()">카카오 로그인</button>
+<button onclick="send()">메시지 보내기</button>
 
-  <script>
-    // 1) 본인 앱의 JavaScript 키로 교체
-    Kakao.init('0f9043de8007aa35650c352ff09d40c1');
+<script>
+const REST_API_KEY = "fe1dd7003cd4ab68607b81bb5079fdfa";
+const REDIRECT_URI = location.origin + location.pathname;
 
-    console.log('Kakao initialized:', Kakao.isInitialized());
+// 로그인
+function login() {
+  location.href =
+    "https://kauth.kakao.com/oauth/authorize?client_id=" +
+    REST_API_KEY +
+    "&redirect_uri=" +
+    REDIRECT_URI +
+    "&response_type=code&scope=talk_message";
+}
 
-    // 2) 버튼 클릭 시 카카오톡 공유
-    document.getElementById('kakao-share-btn').addEventListener('click', function () {
-      Kakao.Share.sendDefault({
-        objectType: 'feed',
-        content: {
-          title: '개인 테스트 메시지',
-          description: '이미지와 링크가 포함된 카카오 공유 테스트입니다.',
-          imageUrl: 'https://e7.pngegg.com/pngimages/664/839/png-clipart-gift-card-starbucks-credit-card-coupon-discount-card-miscellaneous-text-thumbnail.png',
-          link: {
-            mobileWebUrl: 'https://example.com',
-            webUrl: 'https://example.com'
-          }
-        },
-        buttons: [
-          {
-            title: '선물받기',
-            link: {
-              mobileWebUrl: 'https://example.com',
-              webUrl: 'https://example.com'
-            }
-          }
-        ]
-      });
-    });
-  </script>
+// 토큰 요청
+async function getToken(code) {
+  const res = await fetch("https://kauth.kakao.com/oauth/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body:
+      "grant_type=authorization_code" +
+      "&client_id=" + REST_API_KEY +
+      "&redirect_uri=" + REDIRECT_URI +
+      "&code=" + code
+  });
+
+  const data = await res.json();
+  localStorage.setItem("token", data.access_token);
+}
+
+// 메시지 전송
+async function send() {
+  const token = localStorage.getItem("token");
+
+  const template = {
+    object_type: "feed",
+    content: {
+      title: "테스트 메시지",
+      description: "이미지 + 링크 + 버튼",
+      image_url: "https://via.placeholder.com/800x400.png",
+      link: {
+        web_url: "https://example.com",
+        mobile_web_url: "https://example.com"
+      }
+    },
+    buttons: [
+      {
+        title: "사이트 이동",
+        link: {
+          web_url: "https://example.com",
+          mobile_web_url: "https://example.com"
+        }
+      }
+    ]
+  };
+
+  await fetch("https://kapi.kakao.com/v2/api/talk/memo/default/send", {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer " + token,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: "template_object=" + encodeURIComponent(JSON.stringify(template))
+  });
+
+  alert("전송 완료");
+}
+
+// 코드 있으면 자동 토큰 발급
+const code = new URLSearchParams(location.search).get("code");
+if (code) getToken(code);
+</script>
+
 </body>
 </html>
-
-추가로 꼭 확인할 점입니다.
-
-Kakao.init()에는 카카오 디벨로퍼스 앱의 JavaScript 키를 넣어야 하고, 메시지에 들어가는 webUrl, mobileWebUrl, 이미지 URL은 접근 가능한 URL이어야 합니다. 또 JavaScript SDK 사용 전에는 앱 설정에서 JavaScript 키와 JavaScript SDK 도메인 설정이 필요합니다.
-
-테스트용으로 값을 바꿔야 하는 부분은 이 4개입니다.
-
-YOUR_JAVASCRIPT_KEY
-imageUrl
-mobileWebUrl
-webUrl
